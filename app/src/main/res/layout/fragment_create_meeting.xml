@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="8dp"
+    tools:context=".ui.createmeet.CreateMeetingFragment">
+
+    <TextView
+        android:id="@+id/agendaText"
+
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAlignment="center"
+        android:textSize="20dp"
+        android:text="Create New Meeting"
+        android:gravity="center_horizontal"
+        android:textColor="@color/purple_700"/>
+
+    <EditText
+        android:id="@+id/agenda"
+        android:textSize="14dp"
+        android:layout_marginTop="5dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/agendaText"
+        android:hint="Enter Agenda"
+        android:background="@drawable/edit_text_border"
+        android:padding="8dp"
+        android:textAlignment="center"
+        android:gravity="center_horizontal">
+    </EditText>
+        <Button
+            android:id="@+id/startPick"
+            android:layout_width="150dp"
+            android:layout_height="40dp"
+            android:layout_alignParentLeft="true"
+            android:layout_marginTop="5dp"
+            android:layout_marginLeft="15dp"
+            android:layout_below="@+id/agenda"
+            android:text="Start Time"/>
+        <TextView
+            android:id="@+id/start"
+            android:layout_marginTop="5dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/startPick"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif-condensed"
+            android:layout_marginLeft="5dp"
+            />
+
+    <Button
+        android:id="@+id/endPick"
+        android:layout_width="150dp"
+        android:layout_height="40dp"
+        android:layout_alignParentRight="true"
+        android:layout_marginTop="5dp"
+        android:layout_below="@+id/agenda"
+        android:layout_marginRight="15dp"
+        android:text="End Time"/>
+    <TextView
+        android:id="@+id/end"
+        android:layout_marginTop="5dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/endPick"
+        android:textSize="16sp"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="5dp"
+        android:fontFamily="sans-serif-condensed"
+        />
+
+    <Button
+        android:id="@+id/search"
+        android:layout_width="150dp"
+        android:layout_height="40dp"
+        android:layout_below="@+id/end"
+        android:layout_alignParentLeft="true"
+        android:layout_marginLeft="15dp"
+        android:text="Candidates" />
+    <TextView
+        android:id="@+id/available"
+        android:layout_marginTop="10dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/create"
+        android:textSize="18sp"
+        android:layout_centerInParent="true"
+        android:text="Available Participant for Above time"
+
+        android:layout_marginRight="5dp"
+     />
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/refresh"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/available"
+        android:layout_marginTop="10dp">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/unschedule_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/available"
+            android:layout_marginTop="4dp"
+            android:padding="8dp"></androidx.recyclerview.widget.RecyclerView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <Button
+        android:id="@+id/create"
+        android:layout_width="150dp"
+        android:layout_height="40dp"
+        android:layout_below="@+id/end"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="15dp"
+        android:text="Schedule Meeting" />
+
+</RelativeLayout>

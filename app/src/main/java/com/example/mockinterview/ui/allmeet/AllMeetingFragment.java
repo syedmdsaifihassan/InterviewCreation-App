@@ -1,0 +1,285 @@
+package com.example.mockinterview.ui.allmeet;
+
+import android.app.TimePickerDialog;
+import android.os.Build;
+import android.os.Bundle;
+import android.text.format.DateFormat;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProviders;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
+import com.example.mockinterview.R;
+import com.example.mockinterview.Utilities.ApiUrl;
+import com.example.mockinterview.adapter.RecyclerAdapter;
+import com.example.mockinterview.all_interface.RecyclerViewInterFace;
+import com.example.mockinterview.model.Meeting;
+import com.example.mockinterview.ui.createmeet.CreateMeetingFragment;
+import com.example.mockinterview.view_models.FetchData;
+
+import org.json.JSONObject;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
+public class AllMeetingFragment extends Fragment implements RecyclerViewInterFace {
+    View view;
+    RecyclerView recyclerView;
+    LinearLayoutManager manager;
+    RecyclerAdapter recyclerAdapter;
+    SwipeRefreshLayout refresh;
+    List<Meeting> meetingList;
+    ProgressBar progress_bar;
+    Button Update;
+    private OkHttpClient okHttpClient;
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+
+        View view = inflater.inflate(R.layout.fragment_view_meetings, container, false);
+        Update=view.findViewById(R.id.update);
+        recyclerView=(RecyclerView) view.findViewById(R.id.meeting_recycler);
+        refresh = (SwipeRefreshLayout) view.findViewById(R.id.refresh);
+        manager=new LinearLayoutManager(getContext());
+
+        updLoadData();
+
+        refresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            FetchData model = ViewModelProviders.of(getActivity()).get(FetchData.class);
+            @RequiresApi(api = Build.VERSION_CODES.O)
+            @Override
+            public void onRefresh() {
+                model.getMeeting(getActivity()).observe(getActivity(), new Observer<List<Meeting>>() {
+                    @Override
+                    public void onChanged(List<Meeting> meet) {
+                        meetingList.clear();
+                        meetingList= new ArrayList<Meeting>(meet);
+                        recyclerView.setLayoutManager(manager);
+                        recyclerAdapter =new RecyclerAdapter(meet, AllMeetingFragment.this);
+                        recyclerView.setAdapter(recyclerAdapter);
+                        recyclerAdapter.notifyDataSetChanged();
+                        refresh.setRefreshing(false);
+                    }
+                });
+            }
+        });
+
+        return view;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void updLoadData() {
+        FetchData model = ViewModelProviders.of(this).get(FetchData.class);
+        model.getMeeting(getActivity()).observe(getActivity(), new Observer<List<Meeting>>() {
+            @Override
+            public void onChanged(List<Meeting> meet) {
+                meetingList= new ArrayList<Meeting>(meet);
+                recyclerView.setLayoutManager(manager);
+                recyclerAdapter =new RecyclerAdapter(meetingList,AllMeetingFragment.this);
+                recyclerView.setAdapter(recyclerAdapter);
+                recyclerAdapter.notifyDataSetChanged();
+            }
+        });
+    }
+//    public void refershMeeting(){
+//        //Toast.makeText(getContext(),"Refreshing",Toast.LENGTH_SHORT).show();
+//        ;
+//
+//    }
+
+    @Override
+    public void onItemClicked(int position,View itemView) {
+
+        AlertDialog.Builder builder=new AlertDialog.Builder(getContext());
+        View view=getLayoutInflater().inflate(R.layout.update,null);
+        builder.setView(view);
+        final AlertDialog dialog=builder.create();
+
+        final EditText subject=view.findViewById(R.id.subject);
+        final EditText start=view.findViewById(R.id.start);
+        final EditText end=view.findViewById(R.id.end);
+        final Button delete=view.findViewById(R.id.delete);
+        Meeting obj=meetingList.get(position);
+        delete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                deleteMeeting(obj.getMeet_id());
+                dialog.dismiss();
+            }
+        });
+
+        subject.setText(obj.getSubject());
+        start.setText(obj.getStart_time());
+        end.setText(obj.getEnd_time());
+
+        final Button update=view.findViewById(R.id.update);
+
+        String subjectinit=obj.getSubject();
+        String startint=obj.getStart_time();
+
+        String endinit=obj.getEnd_time();
+
+        update.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if(subject.getText().toString().equals(subjectinit) && start.getText().toString().equals(startint) &&
+                        end.getText().toString().equals(endinit)){
+                     Toast.makeText(getActivity(),"Change atleat one thing",Toast.LENGTH_SHORT).show();
+                }
+                else{
+                   update(subject.getText().toString(),start.getText().toString(),end.getText().toString(),obj.getMeet_id());
+                    dialog.dismiss();
+                }
+
+            }
+        });
+
+        // dialog.setCanceledOnTouchOutside(false);
+        //dialog.setCancelable(false);
+        dialog.show();
+
+    }
+
+    private void deleteMeeting(String meet_id) {
+        new Thread(() -> {
+            try {
+                String response = deleteDetail(ApiUrl.DELETE_MEETING,meet_id);
+                System.out.println("1:----@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"+response);
+                JSONObject jsonObject = new JSONObject(response);
+                System.out.println("2:----@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+                final boolean status = jsonObject.getBoolean("status");
+                System.out.println("3:----@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+
+                if (status) {
+                    getActivity().runOnUiThread(() -> {
+                        Toast.makeText(getContext(), "Meeting " + meet_id +" Deleted", Toast.LENGTH_SHORT).show();
+                    });
+                } else {
+                    getActivity().runOnUiThread(() -> {
+                        Toast.makeText(getContext(), "" + "Something went wrong !!!", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            } catch (Exception e) {
+//                Toast.makeText(getContext(),"catch",Toast.LENGTH_SHORT).show();
+                getActivity().runOnUiThread(() -> {
+                    e.printStackTrace();
+                });
+            }
+        }).start();
+    }
+    private String deleteDetail(String url,String meet_id) throws Exception {
+        if (okHttpClient == null) {
+            okHttpClient = new OkHttpClient();
+        }
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("meet_id", meet_id);
+        MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+        RequestBody body = RequestBody.create(JSON, jsonObject.toString());
+
+//        RequestBody requestBody = new MultipartBody.Builder()
+//                .setType(MultipartBody.FORM)
+//                .addFormDataPart("meet_id", meet_id)
+//                .build();
+
+        Request request = new Request.Builder()
+                .url(url)
+                .post(body)
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .build();
+        try (Response response = okHttpClient.newCall(request).execute()) {
+            return response.body().string();
+        }
+    }
+
+    private void update(String sub, String start, String end,String meet_id) {
+
+        new Thread(() -> {
+            try {
+                SimpleDateFormat parser = new SimpleDateFormat("HH:mm");
+                Date startUpdate = parser.parse(start);
+                Date endUpdate = parser.parse(end);
+
+                if (startUpdate.before(endUpdate)) {
+                    String response = updateDetail(ApiUrl.UPDATE_MEETING,start,end,sub,meet_id);
+                    JSONObject jsonObject = new JSONObject(response);
+                    final boolean status = jsonObject.getBoolean("status");
+                    if (status) {
+                        getActivity().runOnUiThread(() -> {
+                            Toast.makeText(getContext(), "Updated Successfully", Toast.LENGTH_SHORT).show();
+                        });
+                    } else {
+                        getActivity().runOnUiThread(() -> {
+                            Toast.makeText(getContext(), "" + "Something went wrong !!!", Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                }else{
+                    getActivity().runOnUiThread(() -> {
+                        Toast.makeText(getContext(), "" + "Start time cannot after end time !!!", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            } catch (Exception e) {
+//                Toast.makeText(getContext(),"catch",Toast.LENGTH_SHORT).show();
+                getActivity().runOnUiThread(() -> {
+                    e.printStackTrace();
+                });
+            }
+        }).start();
+    }
+    private String updateDetail(String url,String start,String end,String agenda,String meet_id) throws Exception {
+        if (okHttpClient == null) {
+            okHttpClient = new OkHttpClient();
+        }
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("start_time", start);
+        jsonObject.put("end_time",end);
+        jsonObject.put("agenda", agenda);
+        jsonObject.put("meet_id", meet_id);
+        MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+        RequestBody body = RequestBody.create(JSON, jsonObject.toString());
+
+//        RequestBody requestBody = new MultipartBody.Builder()
+//                .setType(MultipartBody.FORM)
+//                .addFormDataPart("start", start)
+//                .addFormDataPart("end", end)
+//                .addFormDataPart("agenda", agenda)
+//                .addFormDataPart("meet_id", meet_id)
+//                .build();
+        Request request = new Request.Builder()
+                .url(url)
+                .post(body)
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .build();
+        try (Response response = okHttpClient.newCall(request).execute()) {
+            return response.body().string();
+        }
+      }
+    }
